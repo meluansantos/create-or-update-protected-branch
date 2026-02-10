@@ -1,0 +1,107 @@
+name: 'Create or Update Protected Branch'
+description: 'Aplica regras de proteção a uma branch do GitHub'
+author: 'hardened-sh'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  token:
+    description: 'GitHub token com permissões de admin no repositório'
+    required: true
+  repository:
+    description: 'Repositório no formato owner/repo'
+    required: true
+  branch:
+    description: 'Nome da branch a proteger'
+    required: true
+    default: 'main'
+  required_status_checks:
+    description: 'Lista de status checks obrigatórios (um por linha)'
+    required: false
+  required_pull_request_reviews:
+    description: 'Exigir PR reviews antes do merge'
+    required: false
+    default: 'false'
+  required_approving_review_count:
+    description: 'Número mínimo de aprovadores'
+    required: false
+    default: '1'
+  enforce_admins:
+    description: 'Aplicar regras também para admins'
+    required: false
+    default: 'false'
+  require_signed_commits:
+    description: 'Exigir commits assinados'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Aplicar proteção à branch
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPOSITORY: ${{ inputs.repository }}
+        BRANCH: ${{ inputs.branch }}
+        STATUS_CHECKS: ${{ inputs.required_status_checks }}
+        REQUIRE_PR_REVIEWS: ${{ inputs.required_pull_request_reviews }}
+        APPROVING_COUNT: ${{ inputs.required_approving_review_count }}
+        ENFORCE_ADMINS: ${{ inputs.enforce_admins }}
+        REQUIRE_SIGNED: ${{ inputs.require_signed_commits }}
+      run: |
+        echo "🔒 Aplicando proteção à branch $BRANCH em $REPOSITORY..."
+        
+        # Construir array de status checks
+        CONTEXTS="[]"
+        if [ -n "$STATUS_CHECKS" ]; then
+          CONTEXTS=$(echo "$STATUS_CHECKS" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+        fi
+        
+        # Construir objeto de status checks
+        if [ "$CONTEXTS" != "[]" ]; then
+          STATUS_CHECKS_JSON="{\"strict\":true,\"contexts\":$CONTEXTS}"
+        else
+          STATUS_CHECKS_JSON="null"
+        fi
+        
+        # Construir objeto de PR reviews
+        if [ "$REQUIRE_PR_REVIEWS" = "true" ]; then
+          PR_REVIEWS_JSON="{\"dismiss_stale_reviews\":true,\"require_code_owner_reviews\":true,\"required_approving_review_count\":$APPROVING_COUNT}"
+        else
+          PR_REVIEWS_JSON="null"
+        fi
+        
+        # Aplicar proteção via API
+        gh api \
+          --method PUT \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          "/repos/$REPOSITORY/branches/$BRANCH/protection" \
+          -f required_status_checks="$STATUS_CHECKS_JSON" \
+          -F enforce_admins=$ENFORCE_ADMINS \
+          -f required_pull_request_reviews="$PR_REVIEWS_JSON" \
+          -f restrictions=null \
+          -F allow_force_pushes=false \
+          -F allow_deletions=false \
+          -F required_conversation_resolution=true
+        
+        # Habilitar commits assinados se solicitado
+        if [ "$REQUIRE_SIGNED" = "true" ]; then
+          echo "🔏 Habilitando commits assinados..."
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$REPOSITORY/branches/$BRANCH/protection/required_signatures" || true
+        fi
+        
+        echo "✅ Proteção aplicada com sucesso!"
+        echo ""
+        echo "Configurações:"
+        echo "  - Branch: $BRANCH"
+        echo "  - Status checks: $CONTEXTS"
+        echo "  - PR reviews: $REQUIRE_PR_REVIEWS (min: $APPROVING_COUNT)"
+        echo "  - Enforce admins: $ENFORCE_ADMINS"
+        echo "  - Commits assinados: $REQUIRE_SIGNED"
