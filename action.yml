@@ -1,6 +1,6 @@
 name: 'Create or Update Protected Branch'
 description: 'Aplica regras de proteção a uma branch do GitHub'
-author: 'hardened-sh'
+author: 'meluansantos'
 branding:
   icon: 'shield'
   color: 'green'
@@ -51,7 +51,7 @@ runs:
         ENFORCE_ADMINS: ${{ inputs.enforce_admins }}
         REQUIRE_SIGNED: ${{ inputs.require_signed_commits }}
       run: |
-        echo "🔒 Aplicando proteção à branch $BRANCH em $REPOSITORY..."
+        echo "Aplicando proteção à branch $BRANCH em $REPOSITORY..."
         
         # Construir array de status checks
         CONTEXTS="[]"
@@ -89,7 +89,7 @@ runs:
         
         # Habilitar commits assinados se solicitado
         if [ "$REQUIRE_SIGNED" = "true" ]; then
-          echo "🔏 Habilitando commits assinados..."
+          echo "Habilitando commits assinados..."
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
@@ -97,7 +97,7 @@ runs:
             "/repos/$REPOSITORY/branches/$BRANCH/protection/required_signatures" || true
         fi
         
-        echo "✅ Proteção aplicada com sucesso!"
+        echo "Proteção aplicada com sucesso!"
         echo ""
         echo "Configurações:"
         echo "  - Branch: $BRANCH"
