@@ -54,7 +54,7 @@ jobs:
   protect:
     runs-on: ubuntu-latest
     steps:
-      - uses: hardened-sh/create-or-update-protected-branch@v2
+      - uses: meluansantos/create-or-update-protected-branch@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
