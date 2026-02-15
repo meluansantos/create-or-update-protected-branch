@@ -5,7 +5,7 @@ GitHub Action para aplicar regras de proteção a branches automaticamente.
 ## Uso
 
 ```yaml
-- uses: hardened-sh/create-or-update-protected-branch@v2
+- uses: meluansantos/create-or-update-protected-branch@v2
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     repository: ${{ github.repository }}
